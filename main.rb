@@ -20,6 +20,8 @@ require "concurrent"
 # 2. Get the number of pages in the series.
 # 3. Get the URL of a page in the series.
 # 4. Scrape the HTML of all pages in the series. Return an array of Nokogiri objects.
+# 5. Extract the book information from each page. Return an array of hashes.
+# 6. Write the book information to a CSV file.
 
 BASE_URL = "https://www.penguin.co.uk"
 SERIES = "/series/CLOTBO/penguin-clothbound-classics"
