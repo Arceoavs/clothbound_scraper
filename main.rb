@@ -19,7 +19,8 @@ require 'pathname'
 # 3. Get the URL of a page in the series.
 # 4. Scrape the HTML of all pages in the series. Return an array of Nokogiri objects.
 
-BASE_URL = "https://www.penguin.co.uk/series/CLOTBO/penguin-clothbound-classics?page="
+BASE_URL = "https://www.penguin.co.uk"
+SERIES = "/series/CLOTBO/penguin-clothbound-classics"
 
 def fetch_and_parse(url)
   begin
@@ -49,7 +50,7 @@ end
 
 # Get the URL of a page in the series.
 def get_page_url(number) 
-	"#{BASE_URL}#{number}"
+	"#{BASE_URL}#{SERIES}?page=#{number}"
 end
 
 # Scrape the HTML of all pages in the series. Return an array of HTML strings.
@@ -74,10 +75,8 @@ def extract_book_information(html_doc, page)
         books = html_doc.search(BOOK_CARD_WRAPPER)
         books.map.with_index do |book, index|
 					relative_url = book.attribute('href').value
-					full_url = "https://www.penguin.co.uk#{relative_url}"
+					full_url = "#{BASE_URL}#{relative_url}"
 					book_details = extract_from_details_page(full_url)
-					summary = book_details[:summary]
-					author_information = book_details[:author_information]
             {
                 page: page,
                 index: index + 1,
@@ -85,8 +84,8 @@ def extract_book_information(html_doc, page)
 								full_url: full_url,
                 title: book.search(BOOK_CARD_TITLE).text.strip,
                 author: book.search(BOOK_CARD_AUTHOR).text.strip,
-								summary: summary,
-								author_information: author_information
+								summary: book_details[:summary],
+								author_information: book_details[:author_information]
             }
         end
     rescue Exception => e
@@ -111,7 +110,3 @@ def write_books_to_csv(books)
 end
 
 write_books_to_csv(extract_all_book_information)
-
-# url = extract_all_book_information[17][:full_url]
-# puts extract_from_details_page(url)
-
