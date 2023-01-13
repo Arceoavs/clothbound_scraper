@@ -5,6 +5,7 @@ gemfile do
 	gem 'nokogiri'
 	gem 'pry'
 	gem 'httparty'
+  gem 'concurrent-ruby'
 end
 
 puts 'Gems installed and loaded!'
@@ -12,6 +13,7 @@ puts 'Gems installed and loaded!'
 require "httparty"
 require "csv"
 require 'pathname'
+require "concurrent"
 
 # Order of execution:
 # 1. Get the number of books in the series.
@@ -55,7 +57,11 @@ end
 
 # Scrape the HTML of all pages in the series. Return an array of HTML strings.
 def scrape_pages_html
-    (1..page_count).map { |page_no| fetch_and_parse(get_page_url(page_no)) }
+  # Concurrency speedup
+  promises = (1..page_count).map do |page_no|
+    Concurrent::Promise.execute { fetch_and_parse(get_page_url(page_no)) }
+  end
+  Concurrent::Promise.zip(*promises).value
 end
 
 def extract_from_details_page(url)
@@ -71,27 +77,25 @@ BOOK_CARD_TITLE = '.BookCard_caption__3On-D span:first-child'
 BOOK_CARD_AUTHOR = '.BookCard_caption__3On-D span:nth-child(2)'
 
 def extract_book_information(html_doc, page)
-    begin
-        books = html_doc.search(BOOK_CARD_WRAPPER)
-        books.map.with_index do |book, index|
-					relative_url = book.attribute('href').value
-					full_url = "#{BASE_URL}#{relative_url}"
-					book_details = extract_from_details_page(full_url)
-            {
-                page: page,
-                index: index + 1,
-                relative_url: relative_url,
-								full_url: full_url,
-                title: book.search(BOOK_CARD_TITLE).text.strip,
-                author: book.search(BOOK_CARD_AUTHOR).text.strip,
-								summary: book_details[:summary],
-								author_information: book_details[:author_information]
-            }
-        end
-    rescue Exception => e
-        puts e.message
+    promises = html_doc.search(BOOK_CARD_WRAPPER).map.with_index do |book, index|
+			relative_url = book.attribute('href').value
+			full_url = "#{BASE_URL}#{relative_url}"
+			Concurrent::Promise.execute { extract_from_details_page(full_url) }.then do |book_details|
+				{
+						page: page,
+						index: index + 1,
+						relative_url: relative_url,
+						full_url: full_url,
+						title: book.search(BOOK_CARD_TITLE).text.strip,
+						author: book.search(BOOK_CARD_AUTHOR).text.strip,
+						summary: book_details[:summary],
+						author_information: book_details[:author_information]
+				}
+			end
     end
+    Concurrent::Promise.zip(*promises).value
 end
+
 
 def extract_all_book_information
     scrape_pages_html.map.with_index do |html_doc, index|
