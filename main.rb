@@ -79,30 +79,30 @@ BOOK_CARD_TITLE = '.BookCard_title__2wlQQ'
 BOOK_CARD_AUTHOR = '.BookCard_caption__3On-D span:nth-child(2)'
 
 def extract_book_information(html_doc, page)
-    promises = html_doc.search(BOOK_CARD_WRAPPER).map.with_index do |book, index|
-      relative_url = book.attribute('href').value
-      full_url = "#{BASE_URL}#{relative_url}"
-      Concurrent::Promise.execute { extract_from_details_page(full_url) }.then do |book_details|
-        {
-            page: page,
-            index: index + 1,
-            relative_url: relative_url,
-            full_url: full_url,
-            title: book.search(BOOK_CARD_TITLE).text.strip,
-            author: book.search(BOOK_CARD_AUTHOR).text.strip,
-            summary: book_details[:summary],
-            author_information: book_details[:author_information]
-        }
-      end
+  promises = html_doc.search(BOOK_CARD_WRAPPER).map.with_index do |book, index|
+    relative_url = book.attribute('href').value
+    full_url = "#{BASE_URL}#{relative_url}"
+    Concurrent::Promise.execute { extract_from_details_page(full_url) }.then do |book_details|
+      {
+        page: page,
+        index: index + 1,
+        relative_url: relative_url,
+        full_url: full_url,
+        title: book.search(BOOK_CARD_TITLE).text.strip,
+        author: book.search(BOOK_CARD_AUTHOR).text.strip,
+        summary: book_details[:summary],
+        author_information: book_details[:author_information]
+      }
     end
-    Concurrent::Promise.zip(*promises).value
+  end
+  Concurrent::Promise.zip(*promises).value
 end
 
 
 def extract_all_book_information
-    scrape_pages_html.map.with_index do |html_doc, index|
-        extract_book_information(html_doc, index + 1)
-    end.flatten.compact
+  scrape_pages_html.map.with_index do |html_doc, index|
+    extract_book_information(html_doc, index + 1)
+  end.flatten.compact
 end
 
 def write_books_to_csv(books)
