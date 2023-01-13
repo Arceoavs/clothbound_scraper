@@ -73,7 +73,7 @@ def extract_from_details_page(url)
 end
 
 BOOK_CARD_WRAPPER = '.BookCard_wrapper__glKRr'
-BOOK_CARD_TITLE = '.BookCard_caption__3On-D span:first-child'
+BOOK_CARD_TITLE = '.BookCard_title__2wlQQ'
 BOOK_CARD_AUTHOR = '.BookCard_caption__3On-D span:nth-child(2)'
 
 def extract_book_information(html_doc, page)
