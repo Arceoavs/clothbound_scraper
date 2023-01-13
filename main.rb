@@ -33,6 +33,7 @@ class Scraper
     @logger = Logger.new(STDOUT) # should be first line of initialize
     @books_count = books_count
     @page_count = (@books_count / BOOKS_PER_PAGE.to_f).ceil
+    @pages_html = scrape_pages_html
     @books = []
   end
 
@@ -96,8 +97,7 @@ class Scraper
   end
 
   def extract_all_book_information
-    pages_html = scrape_pages_html
-    pages_html.map.with_index do |html_doc, page|
+    @pages_html.map.with_index do |html_doc, page|
       @books.concat(extract_book_information(html_doc, page + 1))
     end
   end
