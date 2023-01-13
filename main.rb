@@ -30,18 +30,19 @@ class Scraper
   BOOKS_PER_PAGE = 20
 
   def initialize
+    @logger = Logger.new(STDOUT) # should be first line of initialize
     @books_count = books_count
     @page_count = (@books_count / BOOKS_PER_PAGE.to_f).ceil
     @books = []
   end
 
   def fetch_and_parse(url)
-    puts "Fetching #{url}"
+    @logger.info "Fetching #{url}"
     response = HTTParty.get(url)
     html = response.body
     Nokogiri::HTML(html)
   rescue Exception => e
-    puts e.message
+    @logger.error e.message
   end
 
   def books_count
