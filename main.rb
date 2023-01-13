@@ -9,6 +9,7 @@ gemfile do
 end
 
 puts 'Gems installed and loaded!'
+
 # Order of execution:
 # 1. Get the number of books in the series.
 # 2. Get the number of pages in the series.
@@ -22,13 +23,15 @@ class Scraper
   require 'csv'
   require 'pathname'
   require 'concurrent'
+  require 'logger'
 
   BASE_URL = 'https://www.penguin.co.uk'
   SERIES = '/series/CLOTBO/penguin-clothbound-classics'
+  BOOKS_PER_PAGE = 20
 
   def initialize
-    @books_count = nil
-    @page_count = nil
+    @books_count = books_count
+    @page_count = (@books_count / BOOKS_PER_PAGE.to_f).ceil
     @books = []
   end
 
@@ -46,11 +49,6 @@ class Scraper
     books_count_xpath = '/html/body/div[1]/div/main/div/div[1]/div[1]'
     books_count_header = html_doc.xpath(books_count_xpath).text
     @books_count = books_count_header.split(' ')[0].to_i
-  end
-
-  def page_count
-    books_per_page = 20
-    @page_count = (@books_count / books_per_page.to_f).ceil
   end
 
   def get_page_url(number)
@@ -97,8 +95,6 @@ class Scraper
   end
 
   def extract_all_book_information
-    books_count
-    page_count
     pages_html = scrape_pages_html
     pages_html.map.with_index do |html_doc, page|
       @books.concat(extract_book_information(html_doc, page + 1))
