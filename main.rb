@@ -98,7 +98,6 @@ def extract_book_information(html_doc, page)
   Concurrent::Promise.zip(*promises).value
 end
 
-
 def extract_all_book_information
   scrape_pages_html.map.with_index do |html_doc, index|
     extract_book_information(html_doc, index + 1)
