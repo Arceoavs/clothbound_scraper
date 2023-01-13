@@ -23,6 +23,7 @@ BASE_URL = "https://www.penguin.co.uk/series/CLOTBO/penguin-clothbound-classics?
 
 def fetch_and_parse(url)
   begin
+		puts "Fetching #{url}"
     response = HTTParty.get(url)
     html = response.body
     Nokogiri::HTML(html)
@@ -56,6 +57,14 @@ def scrape_pages_html
     (1..page_count).map { |page_no| fetch_and_parse(get_page_url(page_no)) }
 end
 
+def extract_from_details_page(url)
+	html_doc = fetch_and_parse(url)
+	{
+		summary: html_doc.search('.Synopsis_synopsis__3JFsv').text.strip,
+		author_information: html_doc.search('.Authors_author-info__21mvT').text.strip
+	}
+end
+
 BOOK_CARD_WRAPPER = '.BookCard_wrapper__glKRr'
 BOOK_CARD_TITLE = '.BookCard_caption__3On-D span:first-child'
 BOOK_CARD_AUTHOR = '.BookCard_caption__3On-D span:nth-child(2)'
@@ -64,12 +73,20 @@ def extract_book_information(html_doc, page)
     begin
         books = html_doc.search(BOOK_CARD_WRAPPER)
         books.map.with_index do |book, index|
+					relative_url = book.attribute('href').value
+					full_url = "https://www.penguin.co.uk#{relative_url}"
+					book_details = extract_from_details_page(full_url)
+					summary = book_details[:summary]
+					author_information = book_details[:author_information]
             {
                 page: page,
                 index: index + 1,
-                link: book.attribute('href').value,
+                relative_url: relative_url,
+								full_url: full_url,
                 title: book.search(BOOK_CARD_TITLE).text.strip,
-                author: book.search(BOOK_CARD_AUTHOR).text.strip
+                author: book.search(BOOK_CARD_AUTHOR).text.strip,
+								summary: summary,
+								author_information: author_information
             }
         end
     rescue Exception => e
@@ -83,11 +100,6 @@ def extract_all_book_information
     end.flatten.compact
 end
 
-require 'csv'
-
-require 'csv'
-require 'pathname'
-
 def write_books_to_csv(books)
   headers = books.first.keys
   file_path = Pathname.new(File.dirname(__FILE__)).join("books_data.csv")
@@ -98,5 +110,8 @@ def write_books_to_csv(books)
   end
 end
 
+write_books_to_csv(extract_all_book_information)
 
-write_books_to_csv(extract_all_book_information())
+# url = extract_all_book_information[17][:full_url]
+# puts extract_from_details_page(url)
+
