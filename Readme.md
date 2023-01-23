@@ -9,6 +9,8 @@ This code scrapes book information from the Penguin Clothbound Classics series o
 3. The script then extracts the book information from each page and returns an array of hashes.
 4. The book information is then written to a CSV file.
 
+The script is optimized to run as fast as possible by using the concurrent-ruby gem to scrape the HTML of each page in parallel.
+
 ## Usage
 
 The script can be run using the provided `docker-compose.yaml` file in the repository.
