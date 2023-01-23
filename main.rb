@@ -7,7 +7,6 @@ gemfile do
   gem 'httparty'
   gem 'concurrent-ruby'
   gem 'sqlite3'
-  gem 'progress_bar'
 end
 
 puts 'Gems installed and loaded!'
@@ -27,19 +26,24 @@ class Scraper
   require 'concurrent'
   require 'logger'
   require 'sqlite3'
-  require 'progress_bar'
+
+  require_relative 'database_handler'
 
   BASE_URL = 'https://www.penguin.co.uk'
   SERIES = '/series/CLOTBO/penguin-clothbound-classics'
   BOOKS_PER_PAGE = 20
 
   def initialize
-    @logger = Logger.new(STDOUT) # should be first line of initialize
+    # The logger should be first line of initialize
+    @logger = Logger.new(File.new("#{File.dirname(__FILE__)}/logs/debug.log", 'w'))
     @books_count = books_count
     @page_count = (@books_count / BOOKS_PER_PAGE.to_f).ceil
     @pages_html = scrape_pages_html
     @books = []
   end
+
+  # Make @books an attr_reader
+  attr_reader :books
 
   def fetch_and_parse(url)
     @logger.info "Fetching #{url}"
@@ -115,55 +119,11 @@ class Scraper
       end
     end
   end
-
-  def write_to_db(db_filename)
-    db_path = File.join(File.dirname(__FILE__), db_filename)
-
-    # Check if the file already exists and handle it accordingly
-    if File.exist?(db_path)
-      File.delete(db_path)
-    end
-
-    # Open the database connection
-    begin
-      db = SQLite3::Database.open db_path
-    rescue SQLite3::Exception => e
-      raise "Error opening database: #{e.message}"
-    end
-
-    # Create the books table
-    db.execute "CREATE TABLE IF NOT EXISTS books (
-                  page INTEGER,
-                  book_index INTEGER,
-                  relative_url TEXT,
-                  full_url TEXT,
-                  title TEXT,
-                  author TEXT,
-                  summary TEXT,
-                  author_information TEXT
-                )"
-
-    # Check if the books array is empty
-    if @books.empty?
-      raise "Error writing to database: The books array is empty."
-    end
-
-    # Use a block with the transaction method to automatically handle the transaction
-    db.transaction do |db|
-      # Insert books into the table using a prepared statement
-      statement = db.prepare "INSERT INTO books (page, book_index, relative_url, full_url, title, author, summary, author_information) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-      @books.each do |book|
-        statement.execute book[:page], book[:index], book[:relative_url], book[:full_url], book[:title], book[:author], book[:summary], book[:author_information]
-      end
-      statement.close
-    end
-
-    # Close the database connection
-    db.close
-  end
 end
 
 scraper = Scraper.new
 scraper.extract_all_book_information
 scraper.write_to_csv('books_data.csv')
-scraper.write_to_db('books_data.db')
+
+db_handler = DatabaseHandler.new('books_data.db', scraper.books)
+db_handler.write_to_db
