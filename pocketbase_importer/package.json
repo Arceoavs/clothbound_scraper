@@ -1,0 +1,16 @@
+{
+  "name": "pocketbase_importer",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Script to import the books_data.csv file into PocketBase",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Arnold Arz von Straussenburg",
+  "license": "ISC",
+  "dependencies": {
+    "csv": "^6.2.5",
+    "pocketbase": "^0.10.1"
+  }
+}
